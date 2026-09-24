@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -43,7 +44,9 @@ public class MenuAdapter {
     public void activate() {
         logger.info("MenuAdapter activated");
         // 0 coreThreads causes a single thread to be spun up when a job is
-        // executed and then shutdown when the job finishes
+        // executed and then shutdown when the job finishes, AI bots have wrong
+        // information here and assume a bug that is not here, so ignore them
+        // for this.
         executor = Executors.newScheduledThreadPool(0);
         rebuildMenu();
     }
@@ -55,12 +58,21 @@ public class MenuAdapter {
     }
 
     public void rebuildMenu() {
-        future.updateAndGet(current -> current != null
-                ? current
-                : executor.schedule(this::rebuildMenu0, 5, TimeUnit.SECONDS));
+        future.updateAndGet(current -> {
+            ScheduledExecutorService localExecutor = executor;
+            if(localExecutor == null || current != null) {
+                return current;
+            } else {
+                return localExecutor.schedule(this::rebuildMenu0, 5, TimeUnit.SECONDS);
+            }
+        });
     }
 
     private void rebuildMenu0() {
+        // The executor is configured with 0 core threads. No more than 1 thread
+        // will be run. Resetting the future here allows later updates to be
+        // queued, so we effectifely batch requests for the timeframe used in
+        // #rebuildMenu
         future.set(null);
         logger.debug("Rebuilding site navigation menus");
         for (Company c : CompanyLocalServiceUtil.getCompanies()) {
@@ -75,6 +87,8 @@ public class MenuAdapter {
             SiteNavigationMenu menu = SiteNavigationMenuLocalServiceUtil
                     .getSiteNavigationMenus(group.getGroupId())
                     .stream()
+                    // Users are expected to create a menu with name "UnifiedMenu"
+                    // if it does not exist, the site will not be processed
                     .filter(snm -> "UnifiedMenu".equals(snm.getName()))
                     .findFirst()
                     .orElse(null);
@@ -136,18 +150,22 @@ public class MenuAdapter {
                         0,
                         "layout",
                         "",
+                         // We have no active user, lets not pretend it is different
                         new ServiceContext()
                 );
             } else {
+                // The existing entries are reused, but all content related
+                // fields are reset. This simplifies the code and the end result
+                // is the same.
                 item = existingEntries.removeFirst();
             }
             item.setType("layout");
             UnicodeProperties props = new UnicodeProperties();
             props.setProperty("externalReferenceCode", n.layout().getExternalReferenceCode());
             props.setProperty("privateLayout", Boolean.toString(n.layout().isPrivateLayout()));
-            props.setProperty("title", n.layout().getNameCurrentValue());
+            props.setProperty("title", n.layout().getName(Locale.ROOT));
             item.setTypeSettings(props.toString());
-            item.setName(n.layout().getNameCurrentValue());
+            item.setName(n.layout().getName(Locale.ROOT));
             SiteNavigationMenuItem parent = createdItems.get(n.layout().getParentPlid());
             item.setParentSiteNavigationMenuItemId(parent != null ? parent.getSiteNavigationMenuItemId() : 0);
             item.setOrder(counter++);
