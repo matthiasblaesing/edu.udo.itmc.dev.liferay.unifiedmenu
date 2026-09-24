@@ -15,8 +15,8 @@ import com.liferay.site.navigation.model.SiteNavigationMenuItem;
 import com.liferay.site.navigation.service.SiteNavigationMenuItemLocalServiceUtil;
 import com.liferay.site.navigation.service.SiteNavigationMenuLocalServiceUtil;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -49,71 +49,69 @@ public class MenuAdapter {
     }
 
     public void rebuildMenu() {
-        future.updateAndGet(currentValue -> {
-           if(currentValue == null) {
-               return executor.schedule(() -> rebuildMenu0(), 5, TimeUnit.SECONDS);
-           } else {
-               return currentValue;
-           }
-        });
+        future.updateAndGet(current -> current != null
+                ? current
+                : executor.schedule(this::rebuildMenu0, 5, TimeUnit.SECONDS));
     }
 
-    public void rebuildMenu0() {
+    private void rebuildMenu0() {
         future.set(null);
         System.out.println("Menu rebuild 2");
-        for(Company c : CompanyLocalServiceUtil.getCompanies()) {
-            for (Group group: GroupLocalServiceUtil.getGroups(c.getCompanyId(), -1, true) ) {
-                try {
-                SiteNavigationMenu menu = SiteNavigationMenuLocalServiceUtil
-                        .getSiteNavigationMenus(group.getGroupId())
-                        .stream()
-                        .filter(snm -> "UnifiedMenu".equals(snm.getName()))
-                        .findFirst()
-                        .orElse(null);
-
-                if(menu == null) {
-                    continue;
-                }
-
-                Map<Long, Node> nodeMap = new HashMap<>();
-                List<Layout> publicLayouts = LayoutLocalServiceUtil.getLayouts(group.getGroupId(), false);
-                publicLayouts.get(0).isFirstChild();
-                List<Layout> privateLayouts = LayoutLocalServiceUtil.getLayouts(group.getGroupId(), true);
-                Stream.concat(publicLayouts.stream(), privateLayouts.stream())
-                        .forEach(l -> nodeMap.put(l.getPlid(), new Node(l)));
-                List<Node> nodesWithoutParent = new ArrayList<>(nodeMap.values());
-                Iterator<Node> nodesWithoutParentIterator = nodesWithoutParent.iterator();
-                while(nodesWithoutParentIterator.hasNext()) {
-                    Node node = nodesWithoutParentIterator.next();
-                    if(nodeMap.containsKey(node.layout().getParentPlid())) {
-                        nodesWithoutParentIterator.remove();
-                        nodeMap.get(node.layout().getParentPlid()).children().add(node);
-                    }
-                }
-
-                List<SiteNavigationMenuItem> existingEntries = new ArrayList<>(SiteNavigationMenuItemLocalServiceUtil.getSiteNavigationMenuItems(menu.getSiteNavigationMenuId()));
-                Map<Long, SiteNavigationMenuItem> navigationEntries = new HashMap<>();
-
-                toSiteNavigationMenuItem(menu, nodesWithoutParent, nodeMap, navigationEntries, existingEntries);
-                } catch (PortalException | RuntimeException ex) {
-                    System.out.println(ex);
-                }
+        for (Company c : CompanyLocalServiceUtil.getCompanies()) {
+            for (Group group : GroupLocalServiceUtil.getGroups(c.getCompanyId(), -1, true)) {
+                rebuildMenuForGroup(group);
             }
         }
     }
 
-    private void toSiteNavigationMenuItem(SiteNavigationMenu menu, List<Node> toProcess, Map<Long, Node> input, Map<Long, SiteNavigationMenuItem> snmi, List<SiteNavigationMenuItem> existingEntries) throws PortalException {
-        int counter = 0;
-        List<Node> toProcessSorted = new ArrayList<>(toProcess);
-        toProcessSorted.sort((n1, n2) -> {
-            int priv1 = n1.layout().isPrivateLayout() ? 1 : -1;
-            int priv2 = n2.layout().isPrivateLayout() ? 1 : -1;
-            if(priv1 != priv2) {
-                return priv1 - priv2;
+    private void rebuildMenuForGroup(Group group) {
+        try {
+            SiteNavigationMenu menu = SiteNavigationMenuLocalServiceUtil
+                    .getSiteNavigationMenus(group.getGroupId())
+                    .stream()
+                    .filter(snm -> "UnifiedMenu".equals(snm.getName()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (menu == null) {
+                return;
             }
-            return Integer.compare(n1.layout().getPriority(), n2.layout().getPriority());
-        });
-        for (Node n : toProcessSorted) {
+
+            Map<Long, Node> nodeMap = new HashMap<>();
+            Stream.concat(
+                    LayoutLocalServiceUtil.getLayouts(group.getGroupId(), false).stream(),
+                    LayoutLocalServiceUtil.getLayouts(group.getGroupId(), true).stream())
+                    .forEach(l -> nodeMap.put(l.getPlid(), new Node(l)));
+
+            List<Node> roots = nodeMap.values().stream()
+                    .filter(node -> !nodeMap.containsKey(node.layout().getParentPlid()))
+                    .toList();
+            nodeMap.values().forEach(node -> {
+                Node parent = nodeMap.get(node.layout().getParentPlid());
+                if (parent != null) {
+                    parent.children().add(node);
+                }
+            });
+
+            List<SiteNavigationMenuItem> existingEntries = new ArrayList<>(
+                    SiteNavigationMenuItemLocalServiceUtil.getSiteNavigationMenuItems(menu.getSiteNavigationMenuId()));
+            Map<Long, SiteNavigationMenuItem> createdItems = new HashMap<>();
+
+            toSiteNavigationMenuItem(menu, roots, createdItems, existingEntries);
+        } catch (PortalException | RuntimeException ex) {
+            System.out.println(ex);
+        }
+    }
+
+    private void toSiteNavigationMenuItem(SiteNavigationMenu menu, List<Node> toProcess,
+            Map<Long, SiteNavigationMenuItem> createdItems, List<SiteNavigationMenuItem> existingEntries) throws PortalException {
+        List<Node> sorted = new ArrayList<>(toProcess);
+        sorted.sort(Comparator
+                .comparing((Node n) -> n.layout().isPrivateLayout())
+                .thenComparingInt(n -> n.layout().getPriority()));
+
+        int counter = 0;
+        for (Node n : sorted) {
             SiteNavigationMenuItem item;
             if (existingEntries.isEmpty()) {
                 item = SiteNavigationMenuItemLocalServiceUtil.addSiteNavigationMenuItem(
@@ -136,16 +134,12 @@ public class MenuAdapter {
             props.setProperty("title", n.layout().getNameCurrentValue());
             item.setTypeSettings(props.toString());
             item.setName(n.layout().getNameCurrentValue());
-            if(snmi.containsKey(n.layout().getParentPlid())) {
-                item.setParentSiteNavigationMenuItemId(snmi.get(n.layout().getParentPlid()).getSiteNavigationMenuItemId());
-            } else {
-                item.setParentSiteNavigationMenuItemId(0);
-            }
-            item.setOrder(counter);
-            counter++;
+            SiteNavigationMenuItem parent = createdItems.get(n.layout().getParentPlid());
+            item.setParentSiteNavigationMenuItemId(parent != null ? parent.getSiteNavigationMenuItemId() : 0);
+            item.setOrder(counter++);
             SiteNavigationMenuItemLocalServiceUtil.updateSiteNavigationMenuItem(item);
-            snmi.put(n.layout().getPlid(), item);
-            toSiteNavigationMenuItem(menu, n.children(), input, snmi, existingEntries);
+            createdItems.put(n.layout().getPlid(), item);
+            toSiteNavigationMenuItem(menu, n.children(), createdItems, existingEntries);
         }
     }
 
