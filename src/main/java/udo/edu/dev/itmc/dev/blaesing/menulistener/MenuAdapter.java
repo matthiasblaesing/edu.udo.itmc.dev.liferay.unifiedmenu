@@ -100,6 +100,14 @@ public class MenuAdapter {
             Map<Long, SiteNavigationMenuItem> createdItems = new HashMap<>();
 
             toSiteNavigationMenuItem(menu, roots, createdItems, existingEntries);
+
+            for (SiteNavigationMenuItem leftover : existingEntries) {
+                try {
+                    SiteNavigationMenuItemLocalServiceUtil.deleteSiteNavigationMenuItem(leftover.getSiteNavigationMenuItemId());
+                } catch (PortalException ignored) {
+                    // already removed, e.g. as a child of a deleted parent
+                }
+            }
         } catch (PortalException | RuntimeException ex) {
             System.out.println(ex);
         }
