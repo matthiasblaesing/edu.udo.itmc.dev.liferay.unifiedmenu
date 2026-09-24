@@ -38,7 +38,7 @@ public class MenuAdapter {
     private static final Logger logger = LoggerFactory.getLogger(MenuAdapter.class);
 
     private AtomicReference<ScheduledFuture<?>> future = new AtomicReference<>();
-    private ScheduledExecutorService executor;
+    private volatile ScheduledExecutorService executor;
 
     @Activate
     public void activate() {
@@ -53,17 +53,26 @@ public class MenuAdapter {
 
     @Deactivate
     public void deactivate() {
-        executor.shutdownNow();
+        ScheduledExecutorService localExecutor = executor;
         executor = null;
+        if (localExecutor != null) {
+            localExecutor.shutdownNow();
+        }
     }
 
     public void rebuildMenu() {
         future.updateAndGet(current -> {
             ScheduledExecutorService localExecutor = executor;
-            if(localExecutor == null || current != null) {
+            if (localExecutor == null || current != null) {
                 return current;
             } else {
-                return localExecutor.schedule(this::rebuildMenu0, 5, TimeUnit.SECONDS);
+                try {
+                    return localExecutor.schedule(this::rebuildMenu0, 5, TimeUnit.SECONDS);
+                } catch (RuntimeException ex) {
+                    // executor shut down between the read and the schedule call
+                    logger.debug("Could not schedule menu rebuild", ex);
+                    return current;
+                }
             }
         });
     }
@@ -75,10 +84,14 @@ public class MenuAdapter {
         // #rebuildMenu
         future.set(null);
         logger.debug("Rebuilding site navigation menus");
-        for (Company c : CompanyLocalServiceUtil.getCompanies()) {
-            for (Group group : GroupLocalServiceUtil.getGroups(c.getCompanyId(), -1, true)) {
-                rebuildMenuForGroup(group);
+        try {
+            for (Company c : CompanyLocalServiceUtil.getCompanies()) {
+                for (Group group : GroupLocalServiceUtil.getGroups(c.getCompanyId(), -1, true)) {
+                    rebuildMenuForGroup(group);
+                }
             }
+        } catch (RuntimeException ex) {
+            logger.error("Failed to rebuild menus", ex);
         }
     }
 
