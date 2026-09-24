@@ -38,6 +38,8 @@ public class MenuAdapter {
     @Activate
     public void activate() {
         System.out.println("Activation");
+        // 0 coreThreads causes a single thread to be spun up when a job is
+        // executed and then shutdown when the job finishes
         executor = Executors.newScheduledThreadPool(0);
         rebuildMenu();
     }

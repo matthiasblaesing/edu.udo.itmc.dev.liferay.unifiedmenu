@@ -8,7 +8,6 @@ import com.liferay.portal.kernel.service.ServiceWrapper;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
-import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -17,11 +16,6 @@ public class LayoutLocalServiceWrapperImpl extends LayoutLocalServiceWrapper {
 
     @Reference
     private MenuAdapter menuAdapter;
-
-    @Activate
-    public void activate() {
-        System.out.println("Activation 2");
-    }
 
     @Override
     public Layout updatePriority(long plid, int priority) throws PortalException {
