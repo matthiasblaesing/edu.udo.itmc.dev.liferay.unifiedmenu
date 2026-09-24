@@ -29,15 +29,19 @@ import java.util.stream.Stream;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component(service = MenuAdapter.class, immediate = true)
 public class MenuAdapter {
+    private static final Logger logger = LoggerFactory.getLogger(MenuAdapter.class);
+
     private AtomicReference<ScheduledFuture<?>> future = new AtomicReference<>();
     private ScheduledExecutorService executor;
 
     @Activate
     public void activate() {
-        System.out.println("Activation");
+        logger.info("MenuAdapter activated");
         // 0 coreThreads causes a single thread to be spun up when a job is
         // executed and then shutdown when the job finishes
         executor = Executors.newScheduledThreadPool(0);
@@ -58,7 +62,7 @@ public class MenuAdapter {
 
     private void rebuildMenu0() {
         future.set(null);
-        System.out.println("Menu rebuild 2");
+        logger.debug("Rebuilding site navigation menus");
         for (Company c : CompanyLocalServiceUtil.getCompanies()) {
             for (Group group : GroupLocalServiceUtil.getGroups(c.getCompanyId(), -1, true)) {
                 rebuildMenuForGroup(group);
@@ -109,7 +113,7 @@ public class MenuAdapter {
                 }
             }
         } catch (PortalException | RuntimeException ex) {
-            System.out.println(ex);
+            logger.error("Failed to rebuild menu for group {}", group.getGroupId(), ex);
         }
     }
 
