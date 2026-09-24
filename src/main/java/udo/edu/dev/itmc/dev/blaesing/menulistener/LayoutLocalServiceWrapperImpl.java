@@ -278,6 +278,51 @@ public class LayoutLocalServiceWrapperImpl extends LayoutLocalServiceWrapper {
         }
     }
 
+    @Override
+    public Layout updateName(Layout layout, String name, String languageId) throws PortalException {
+        try {
+            return super.updateName(layout, name, languageId);
+        } finally {
+            rebuildMenu();
+        }
+    }
+
+    @Override
+    public Layout updateName(long groupId, boolean privateLayout, long layoutId, String name, String languageId) throws PortalException {
+        try {
+            return super.updateName(groupId, privateLayout, layoutId, name, languageId);
+        } finally {
+            rebuildMenu();
+        }
+    }
+
+    @Override
+    public Layout updateName(long plid, String name, String languageId) throws PortalException {
+        try {
+            return super.updateName(plid, name, languageId);
+        } finally {
+            rebuildMenu();
+        }
+    }
+
+    @Override
+    public void updatePriorities(long groupId, boolean privateLayout) throws PortalException {
+        try {
+            super.updatePriorities(groupId, privateLayout);
+        } finally {
+            rebuildMenu();
+        }
+    }
+
+    @Override
+    public void setLayouts(long groupId, boolean privateLayout, long parentLayoutId, long[] layoutIds, ServiceContext serviceContext) throws PortalException {
+        try {
+            super.setLayouts(groupId, privateLayout, parentLayoutId, layoutIds, serviceContext);
+        } finally {
+            rebuildMenu();
+        }
+    }
+
     private void rebuildMenu() {
         menuAdapter.rebuildMenu();
     }
