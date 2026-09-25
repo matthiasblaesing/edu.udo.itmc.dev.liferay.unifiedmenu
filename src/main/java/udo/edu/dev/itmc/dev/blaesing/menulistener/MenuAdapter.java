@@ -15,6 +15,8 @@ import com.liferay.site.navigation.model.SiteNavigationMenuItem;
 import com.liferay.site.navigation.service.SiteNavigationMenuItemLocalServiceUtil;
 import com.liferay.site.navigation.service.SiteNavigationMenuLocalServiceUtil;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -111,16 +113,41 @@ public class MenuAdapter {
             }
 
             Map<Long, Node> nodeMap = new HashMap<>();
+            // Assumption: friendlyURLs are unique in their area
+            Map<String, Node> friendlyUrlMapPrivate = new HashMap<>();
+            Map<String, Node> friendlyUrlMapPublic = new HashMap<>();
             Stream.concat(
                     LayoutLocalServiceUtil.getLayouts(group.getGroupId(), false).stream(),
                     LayoutLocalServiceUtil.getLayouts(group.getGroupId(), true).stream())
-                    .forEach(l -> nodeMap.put(l.getPlid(), new Node(l)));
+                    .forEach(l -> {
+                        Node node = new Node(l);
+                        nodeMap.put(l.getPlid(), node);
+                        if(l.isPrivateLayout()) {
+                           friendlyUrlMapPrivate.put(l.getFriendlyURL(), node);
+                        } else {
+                           friendlyUrlMapPublic.put(l.getFriendlyURL(), node);
+                        }
+                    });
+
+            Map<Long,Long> publicPrivateMap = new HashMap<>();
+
+            friendlyUrlMapPrivate.forEach((friendlyUrl, privateNode) -> {
+                Node publicNode = friendlyUrlMapPublic.get(friendlyUrl);
+                if(publicNode != null) {
+                    publicPrivateMap.put(publicNode.layout().getPlid(), privateNode.layout().getPlid());
+                    nodeMap.remove(publicNode.layout().getPlid());
+                }
+            });
 
             List<Node> roots = nodeMap.values().stream()
-                    .filter(node -> !nodeMap.containsKey(node.layout().getParentPlid()))
+                    .filter(node -> {
+                        long parentPlid = publicPrivateMap.getOrDefault(node.layout().getParentPlid(), node.layout().getParentPlid());
+                        return !nodeMap.containsKey(parentPlid);
+                    })
                     .toList();
             nodeMap.values().forEach(node -> {
-                Node parent = nodeMap.get(node.layout().getParentPlid());
+                long parentPlid = publicPrivateMap.getOrDefault(node.layout().getParentPlid(), node.layout().getParentPlid());
+                Node parent = nodeMap.get(parentPlid);
                 if (parent != null) {
                     parent.children().add(node);
                 }
@@ -128,9 +155,8 @@ public class MenuAdapter {
 
             List<SiteNavigationMenuItem> existingEntries = new ArrayList<>(
                     SiteNavigationMenuItemLocalServiceUtil.getSiteNavigationMenuItems(menu.getSiteNavigationMenuId()));
-            Map<Long, SiteNavigationMenuItem> createdItems = new HashMap<>();
 
-            toSiteNavigationMenuItem(menu, roots, createdItems, existingEntries);
+            toSiteNavigationMenuItem(menu, roots, null, existingEntries, publicPrivateMap.values());
 
             for (SiteNavigationMenuItem leftover : existingEntries) {
                 try {
@@ -145,10 +171,16 @@ public class MenuAdapter {
     }
 
     private void toSiteNavigationMenuItem(SiteNavigationMenu menu, List<Node> toProcess,
-            Map<Long, SiteNavigationMenuItem> createdItems, List<SiteNavigationMenuItem> existingEntries) throws PortalException {
+            SiteNavigationMenuItem parent, List<SiteNavigationMenuItem> existingEntries,
+            Collection<Long> mappedPublicToPrivate) throws PortalException {
         List<Node> sorted = new ArrayList<>(toProcess);
         sorted.sort(Comparator
-                .comparing((Node n) -> n.layout().isPrivateLayout())
+                .comparing((Node n) -> {
+                    if (mappedPublicToPrivate.contains(n.layout().getPlid())) {
+                        return false;
+                    }
+                    return n.layout().isPrivateLayout();
+                })
                 .thenComparingInt(n -> n.layout().getPriority()));
 
         int counter = 0;
@@ -179,12 +211,10 @@ public class MenuAdapter {
             props.setProperty("title", n.layout().getName(Locale.ROOT));
             item.setTypeSettings(props.toString());
             item.setName(n.layout().getName(Locale.ROOT));
-            SiteNavigationMenuItem parent = createdItems.get(n.layout().getParentPlid());
             item.setParentSiteNavigationMenuItemId(parent != null ? parent.getSiteNavigationMenuItemId() : 0);
             item.setOrder(counter++);
             SiteNavigationMenuItemLocalServiceUtil.updateSiteNavigationMenuItem(item);
-            createdItems.put(n.layout().getPlid(), item);
-            toSiteNavigationMenuItem(menu, n.children(), createdItems, existingEntries);
+            toSiteNavigationMenuItem(menu, n.children(), item, existingEntries, mappedPublicToPrivate);
         }
     }
 
