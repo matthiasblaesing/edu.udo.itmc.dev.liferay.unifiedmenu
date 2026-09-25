@@ -11,6 +11,10 @@ import java.util.Map;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
+/**
+ * Verfolgung von Änderungen an Layouts. Wenn ein Layout geändert wird, löst
+ * der Listener eine gebatchte Aktualisierung der Menüs aus.
+ */
 @Component(service = ServiceWrapper.class, immediate = true)
 public class LayoutLocalServiceWrapperImpl extends LayoutLocalServiceWrapper {
 

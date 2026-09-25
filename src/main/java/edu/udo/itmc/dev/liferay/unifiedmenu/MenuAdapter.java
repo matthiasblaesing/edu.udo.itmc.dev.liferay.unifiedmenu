@@ -34,6 +34,13 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Generierung des vereinigten/unified Menüs. Die Idee hier:
+ *
+ * Für angemeldete Benutzer sollten sowohl private, wie auch öffentliche Seiten
+ * in einem Menü zur Verfügung stehen. Einträge mit gleicher friendly URL werden
+ * dabei als "identisch" angesehen und ersetzen dabei öffentliche Seiten.
+ */
 @Component(service = MenuAdapter.class, immediate = true)
 public class MenuAdapter {
     private static final Logger logger = LoggerFactory.getLogger(MenuAdapter.class);

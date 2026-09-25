@@ -8,6 +8,9 @@ import com.liferay.portal.kernel.scheduler.TriggerConfiguration;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
+/**
+ * Job für die periodische Regenerierung der Menüstruktur
+ */
 @Component(service = SchedulerJobConfiguration.class)
 public class MenuRebuildJobConfiguration implements SchedulerJobConfiguration {
 
@@ -23,6 +26,6 @@ public class MenuRebuildJobConfiguration implements SchedulerJobConfiguration {
 
     @Override
     public TriggerConfiguration getTriggerConfiguration() {
-        return TriggerConfiguration.createTriggerConfiguration(60, TimeUnit.MINUTE);
+        return TriggerConfiguration.createTriggerConfiguration(6, TimeUnit.HOUR);
     }
 }
