@@ -16,7 +16,6 @@ import com.liferay.site.navigation.service.SiteNavigationMenuItemLocalServiceUti
 import com.liferay.site.navigation.service.SiteNavigationMenuLocalServiceUtil;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -94,6 +93,8 @@ public class MenuAdapter {
             }
         } catch (RuntimeException ex) {
             logger.error("Failed to rebuild menus", ex);
+        } finally {
+            logger.debug("Rebuilding site navigation menus done");
         }
     }
 
