@@ -1,5 +1,5 @@
 
-package udo.edu.dev.itmc.dev.blaesing.menulistener;
+package edu.udo.itmc.dev.liferay.unifiedmenu;
 
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Company;
