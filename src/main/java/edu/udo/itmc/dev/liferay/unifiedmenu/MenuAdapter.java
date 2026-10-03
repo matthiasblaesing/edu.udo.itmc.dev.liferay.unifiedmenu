@@ -1,4 +1,3 @@
-
 package edu.udo.itmc.dev.liferay.unifiedmenu;
 
 import com.liferay.portal.kernel.exception.PortalException;
@@ -9,6 +8,9 @@ import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
 import com.liferay.portal.kernel.service.LayoutLocalServiceUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.transaction.Propagation;
+import com.liferay.portal.kernel.transaction.TransactionConfig;
+import com.liferay.portal.kernel.transaction.TransactionInvokerUtil;
 import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.site.navigation.model.SiteNavigationMenu;
 import com.liferay.site.navigation.model.SiteNavigationMenuItem;
@@ -36,13 +38,14 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Generierung des vereinigten/unified Menüs. Die Idee hier:
- *
+ * <p>
  * Für angemeldete Benutzer sollten sowohl private, wie auch öffentliche Seiten
  * in einem Menü zur Verfügung stehen. Einträge mit gleicher friendly URL werden
  * dabei als "identisch" angesehen und ersetzen dabei öffentliche Seiten.
  */
 @Component(service = MenuAdapter.class, immediate = true)
 public class MenuAdapter {
+
     private static final Logger logger = LoggerFactory.getLogger(MenuAdapter.class);
 
     private AtomicReference<ScheduledFuture<?>> future = new AtomicReference<>();
@@ -92,10 +95,31 @@ public class MenuAdapter {
         // #rebuildMenu
         future.set(null);
         logger.debug("Rebuilding site navigation menus");
+        TransactionConfig tc = TransactionConfig.Factory.create(Propagation.REQUIRES_NEW, new Class<?>[]{Exception.class});
         try {
             for (Company c : CompanyLocalServiceUtil.getCompanies()) {
                 for (Group group : GroupLocalServiceUtil.getGroups(c.getCompanyId(), -1, true)) {
-                    rebuildMenuForGroup(group);
+                    logger.debug(String.format(
+                            "Rebuilding menu for company %s (Web-ID: %s) and company %s (Friendly-URL: %s)",
+                            c.getName(),
+                            c.getWebId(),
+                            group.getNameCurrentValue(),
+                            group.getFriendlyURL()
+                    ));
+                    try {
+                        TransactionInvokerUtil.invoke(tc, () -> {
+                            rebuildMenuForGroup(group);
+                            return null;
+                        });
+                    } catch (Throwable ex) {
+                        logger.error(String.format(
+                                "Rebuilding menu for company %s (Web-ID: %s) and company %s (Friendly-URL: %s)",
+                                c.getName(),
+                                c.getWebId(),
+                                group.getNameCurrentValue(),
+                                group.getFriendlyURL()
+                        ), ex);
+                    }
                 }
             }
         } catch (RuntimeException ex) {
@@ -129,19 +153,22 @@ public class MenuAdapter {
                     LayoutLocalServiceUtil.getLayouts(group.getGroupId(), true).stream())
                     .forEach(l -> {
                         Node node = new Node(l);
-                        nodeMap.put(l.getPlid(), node);
-                        if(l.isPrivateLayout()) {
-                           friendlyUrlMapPrivate.put(l.getFriendlyURL(), node);
-                        } else {
-                           friendlyUrlMapPublic.put(l.getFriendlyURL(), node);
+                        // Ignore hidden layouts for menus (this aligns with the handling of the main menu)
+                        if (!l.isHidden()) {
+                            nodeMap.put(l.getPlid(), node);
+                            if (l.isPrivateLayout()) {
+                                friendlyUrlMapPrivate.put(l.getFriendlyURL(), node);
+                            } else {
+                                friendlyUrlMapPublic.put(l.getFriendlyURL(), node);
+                            }
                         }
                     });
 
-            Map<Long,Long> publicPrivateMap = new HashMap<>();
+            Map<Long, Long> publicPrivateMap = new HashMap<>();
 
             friendlyUrlMapPrivate.forEach((friendlyUrl, privateNode) -> {
                 Node publicNode = friendlyUrlMapPublic.get(friendlyUrl);
-                if(publicNode != null) {
+                if (publicNode != null) {
                     publicPrivateMap.put(publicNode.layout().getPlid(), privateNode.layout().getPlid());
                     nodeMap.remove(publicNode.layout().getPlid());
                 }
@@ -203,7 +230,7 @@ public class MenuAdapter {
                         0,
                         "layout",
                         "",
-                         // We have no active user, lets not pretend it is different
+                        // We have no active user, lets not pretend it is different
                         new ServiceContext()
                 );
             } else {
@@ -226,8 +253,8 @@ public class MenuAdapter {
         }
     }
 
+    private static record Node(Layout layout, List<Node> children) {
 
-    private static record Node (Layout layout, List<Node> children) {
         public Node(Layout layout) {
             this(layout, new ArrayList<>());
         }
