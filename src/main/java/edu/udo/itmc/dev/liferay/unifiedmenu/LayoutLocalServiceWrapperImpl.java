@@ -229,6 +229,15 @@ public class LayoutLocalServiceWrapperImpl extends LayoutLocalServiceWrapper {
     }
 
     @Override
+    public Layout convertEmptyLayout(long userId, long plid, Map<Locale, String> nameMap, String type, long classNameId, long classPK, String masterLayoutPageTemplateEntryERC, ServiceContext serviceContext) throws Exception {
+        try {
+            return super.convertEmptyLayout(userId, plid, nameMap, type, classNameId, classPK, masterLayoutPageTemplateEntryERC, serviceContext);
+        } finally {
+            rebuildMenu();
+        }
+    }
+
+    @Override
     public Layout addLayout(String externalReferenceCode, long userId, long groupId, boolean privateLayout, long parentLayoutId, String name, String title, String description, String type, boolean hidden, String friendlyURL, ServiceContext serviceContext) throws PortalException {
         try {
             return super.addLayout(externalReferenceCode, userId, groupId, privateLayout, parentLayoutId, name, title, description, type, hidden, friendlyURL, serviceContext);
@@ -322,6 +331,24 @@ public class LayoutLocalServiceWrapperImpl extends LayoutLocalServiceWrapper {
     public void setLayouts(long groupId, boolean privateLayout, long parentLayoutId, long[] layoutIds, ServiceContext serviceContext) throws PortalException {
         try {
             super.setLayouts(groupId, privateLayout, parentLayoutId, layoutIds, serviceContext);
+        } finally {
+            rebuildMenu();
+        }
+    }
+
+    @Override
+    public Layout updateStatus(long userId, long plid, int status, ServiceContext serviceContext) throws PortalException {
+        try {
+            return super.updateStatus(userId, plid, status, serviceContext);
+        } finally {
+            rebuildMenu();
+        }
+    }
+
+    @Override
+    public Layout updateType(long plid, String type) throws PortalException {
+        try {
+            return super.updateType(plid, type);
         } finally {
             rebuildMenu();
         }
