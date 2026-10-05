@@ -4,6 +4,7 @@ import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
+import com.liferay.portal.kernel.module.framework.ModuleServiceLifecycle;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
 import com.liferay.portal.kernel.service.LayoutLocalServiceUtil;
@@ -33,6 +34,7 @@ import java.util.stream.Stream;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +52,12 @@ public class MenuAdapter {
 
     private AtomicReference<ScheduledFuture<?>> future = new AtomicReference<>();
     private volatile ScheduledExecutorService executor;
+
+    // Stelle sicher, dass das Portal (inkl. der Portlets) vollständig
+    // initialisiert ist, bevor wir aktiv werden. Injizierter Service wird
+    // benutzt, es geht nur um die Verzögerung der Aktivierung dieses Services.
+    @Reference(target = ModuleServiceLifecycle.PORTLETS_INITIALIZED)
+    private ModuleServiceLifecycle _moduleServiceLifecycle;
 
     @Activate
     public void activate() {
