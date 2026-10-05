@@ -1,6 +1,9 @@
 Unified-Menu
 ============
 
+Menü-Generierung
+----------------
+
 Generierung des vereinigten/unified Menüs. Die Idee hier:
 
 Für angemeldete Benutzer sollten sowohl private, wie auch öffentliche Seiten
@@ -19,3 +22,13 @@ Administrative Eintriffsmöglichkeiten:
 - das Menü kann manuell neugebaut werden, durch manuelles Triggern des
   periodischen Rebuilds. Kontrollbereich -> Konfiguration -> Ausführung ->
   Geplante Aufgaben -> MenuRebuildJobConfiguration
+
+
+404-Handling
+------------
+
+Es wird ein spezieller 404 Handler (vgl. `NotFoundInfoRenderer.java`)
+installiert, welcher für 404 Seiten prüft, ob es bei Seiten in public (kein
+Präfix bzw. `/web/<site>`) und private Pages (Präfix `/group/<site`) im jeweils
+anderen Bereich eine Seite mit gleicher FriendlyURL existiert. Ist dies der Fall
+so wird diese Seite verlinkt.
