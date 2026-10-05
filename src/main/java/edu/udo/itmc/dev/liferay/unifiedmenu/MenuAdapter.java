@@ -108,7 +108,7 @@ public class MenuAdapter {
             for (Company c : CompanyLocalServiceUtil.getCompanies()) {
                 for (Group group : GroupLocalServiceUtil.getGroups(c.getCompanyId(), -1, true)) {
                     logger.debug(String.format(
-                            "Rebuilding menu for company %s (Web-ID: %s) and company %s (Friendly-URL: %s)",
+                            "Rebuilding menu for company %s (Web-ID: %s) and group %s (Friendly-URL: %s)",
                             c.getName(),
                             c.getWebId(),
                             group.getNameCurrentValue(),
@@ -121,7 +121,7 @@ public class MenuAdapter {
                         });
                     } catch (Throwable ex) {
                         logger.error(String.format(
-                                "Rebuilding menu for company %s (Web-ID: %s) and company %s (Friendly-URL: %s)",
+                                "Rebuilding menu for company %s (Web-ID: %s) and group %s (Friendly-URL: %s)",
                                 c.getName(),
                                 c.getWebId(),
                                 group.getNameCurrentValue(),
