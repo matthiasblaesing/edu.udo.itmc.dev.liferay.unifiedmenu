@@ -161,14 +161,11 @@ public class MenuAdapter {
                     LayoutLocalServiceUtil.getLayouts(group.getGroupId(), true).stream())
                     .forEach(l -> {
                         Node node = new Node(l);
-                        // Ignore hidden layouts for menus (this aligns with the handling of the main menu)
-                        if (!l.isHidden()) {
-                            nodeMap.put(l.getPlid(), node);
-                            if (l.isPrivateLayout()) {
-                                friendlyUrlMapPrivate.put(l.getFriendlyURL(), node);
-                            } else {
-                                friendlyUrlMapPublic.put(l.getFriendlyURL(), node);
-                            }
+                        nodeMap.put(l.getPlid(), node);
+                        if (l.isPrivateLayout()) {
+                            friendlyUrlMapPrivate.put(l.getFriendlyURL(), node);
+                        } else {
+                            friendlyUrlMapPublic.put(l.getFriendlyURL(), node);
                         }
                     });
 
@@ -185,7 +182,7 @@ public class MenuAdapter {
             List<Node> roots = nodeMap.values().stream()
                     .filter(node -> {
                         long parentPlid = publicPrivateMap.getOrDefault(node.layout().getParentPlid(), node.layout().getParentPlid());
-                        return !nodeMap.containsKey(parentPlid);
+                        return parentPlid == 0;
                     })
                     .toList();
             nodeMap.values().forEach(node -> {
@@ -249,6 +246,7 @@ public class MenuAdapter {
             }
             item.setType("layout");
             UnicodeProperties props = new UnicodeProperties();
+            props.setProperty("layoutUuid", n.layout().getUuid());
             props.setProperty("externalReferenceCode", n.layout().getExternalReferenceCode());
             props.setProperty("privateLayout", Boolean.toString(n.layout().isPrivateLayout()));
             props.setProperty("title", n.layout().getName(Locale.ROOT));
