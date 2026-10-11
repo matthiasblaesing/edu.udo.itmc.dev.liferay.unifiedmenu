@@ -93,23 +93,23 @@ public class LayoutLocalServiceWrapperImpl extends LayoutLocalServiceWrapper {
         }
     }
 
-    @Override
-    public Layout updateLayout(long groupId, boolean privateLayout, long layoutId, String typeSettings, byte[] iconBytes, String themeId, String colorSchemeId, String styleBookEntryERC, String css, String faviconFileEntryERC, String faviconFileEntryScopeERC, String masterLayoutPageTemplateEntryERC) throws PortalException {
-        try {
-            return super.updateLayout(groupId, privateLayout, layoutId, typeSettings, iconBytes, themeId, colorSchemeId, styleBookEntryERC, css, faviconFileEntryERC, faviconFileEntryScopeERC, masterLayoutPageTemplateEntryERC);
-        } finally {
-            rebuildMenu();
-        }
-    }
+//    @Override
+//    public Layout updateLayout(long groupId, boolean privateLayout, long layoutId, String typeSettings, byte[] iconBytes, String themeId, String colorSchemeId, String styleBookEntryERC, String css, String faviconFileEntryERC, String faviconFileEntryScopeERC, String masterLayoutPageTemplateEntryERC) throws PortalException {
+//        try {
+//            return super.updateLayout(groupId, privateLayout, layoutId, typeSettings, iconBytes, themeId, colorSchemeId, styleBookEntryERC, css, faviconFileEntryERC, faviconFileEntryScopeERC, masterLayoutPageTemplateEntryERC);
+//        } finally {
+//            rebuildMenu();
+//        }
+//    }
 
-    @Override
-    public Layout updateLayout(long groupId, boolean privateLayout, long layoutId, long parentLayoutId, Map<Locale, String> nameMap, Map<Locale, String> titleMap, Map<Locale, String> descriptionMap, Map<Locale, String> keywordsMap, Map<Locale, String> robotsMap, String type, boolean hidden, Map<Locale, String> friendlyURLMap, boolean hasIconImage, byte[] iconBytes, String styleBookEntryERC, String faviconFileEntryERC, String faviconFileEntryScopeERC, String masterLayoutPageTemplateEntryERC, ServiceContext serviceContext) throws PortalException {
-        try {
-            return super.updateLayout(groupId, privateLayout, layoutId, parentLayoutId, nameMap, titleMap, descriptionMap, keywordsMap, robotsMap, type, hidden, friendlyURLMap, hasIconImage, iconBytes, styleBookEntryERC, faviconFileEntryERC, faviconFileEntryScopeERC, masterLayoutPageTemplateEntryERC, serviceContext);
-        } finally {
-            rebuildMenu();
-        }
-    }
+//    @Override
+//    public Layout updateLayout(long groupId, boolean privateLayout, long layoutId, long parentLayoutId, Map<Locale, String> nameMap, Map<Locale, String> titleMap, Map<Locale, String> descriptionMap, Map<Locale, String> keywordsMap, Map<Locale, String> robotsMap, String type, boolean hidden, Map<Locale, String> friendlyURLMap, boolean hasIconImage, byte[] iconBytes, String styleBookEntryERC, String faviconFileEntryERC, String faviconFileEntryScopeERC, String masterLayoutPageTemplateEntryERC, ServiceContext serviceContext) throws PortalException {
+//        try {
+//            return super.updateLayout(groupId, privateLayout, layoutId, parentLayoutId, nameMap, titleMap, descriptionMap, keywordsMap, robotsMap, type, hidden, friendlyURLMap, hasIconImage, iconBytes, styleBookEntryERC, faviconFileEntryERC, faviconFileEntryScopeERC, masterLayoutPageTemplateEntryERC, serviceContext);
+//        } finally {
+//            rebuildMenu();
+//        }
+//    }
 
     @Override
     public Layout updateLayout(long groupId, boolean privateLayout, long layoutId, long classNameId, long classPK) throws PortalException {
@@ -228,14 +228,14 @@ public class LayoutLocalServiceWrapperImpl extends LayoutLocalServiceWrapper {
         }
     }
 
-    @Override
-    public Layout convertEmptyLayout(long userId, long plid, Map<Locale, String> nameMap, String type, long classNameId, long classPK, String masterLayoutPageTemplateEntryERC, ServiceContext serviceContext) throws Exception {
-        try {
-            return super.convertEmptyLayout(userId, plid, nameMap, type, classNameId, classPK, masterLayoutPageTemplateEntryERC, serviceContext);
-        } finally {
-            rebuildMenu();
-        }
-    }
+//    @Override
+//    public Layout convertEmptyLayout(long userId, long plid, Map<Locale, String> nameMap, String type, long classNameId, long classPK, String masterLayoutPageTemplateEntryERC, ServiceContext serviceContext) throws Exception {
+//        try {
+//            return super.convertEmptyLayout(userId, plid, nameMap, type, classNameId, classPK, masterLayoutPageTemplateEntryERC, serviceContext);
+//        } finally {
+//            rebuildMenu();
+//        }
+//    }
 
     @Override
     public Layout addLayout(String externalReferenceCode, long userId, long groupId, boolean privateLayout, long parentLayoutId, String name, String title, String description, String type, boolean hidden, String friendlyURL, ServiceContext serviceContext) throws PortalException {
@@ -273,14 +273,14 @@ public class LayoutLocalServiceWrapperImpl extends LayoutLocalServiceWrapper {
         }
     }
 
-    @Override
-    public Layout addLayout(String externalReferenceCode, long userId, long groupId, boolean privateLayout, long parentLayoutId, long classNameId, long classPK, Map<Locale, String> nameMap, Map<Locale, String> titleMap, Map<Locale, String> descriptionMap, Map<Locale, String> keywordsMap, Map<Locale, String> robotsMap, String type, String typeSettings, boolean hidden, boolean system, Map<Locale, String> friendlyURLMap, String masterLayoutPageTemplateEntryERC, ServiceContext serviceContext) throws PortalException {
-        try {
-            return super.addLayout(externalReferenceCode, userId, groupId, privateLayout, parentLayoutId, classNameId, classPK, nameMap, titleMap, descriptionMap, keywordsMap, robotsMap, type, typeSettings, hidden, system, friendlyURLMap, masterLayoutPageTemplateEntryERC, serviceContext);
-        } finally {
-            rebuildMenu();
-        }
-    }
+//    @Override
+//    public Layout addLayout(String externalReferenceCode, long userId, long groupId, boolean privateLayout, long parentLayoutId, long classNameId, long classPK, Map<Locale, String> nameMap, Map<Locale, String> titleMap, Map<Locale, String> descriptionMap, Map<Locale, String> keywordsMap, Map<Locale, String> robotsMap, String type, String typeSettings, boolean hidden, boolean system, Map<Locale, String> friendlyURLMap, String masterLayoutPageTemplateEntryERC, ServiceContext serviceContext) throws PortalException {
+//        try {
+//            return super.addLayout(externalReferenceCode, userId, groupId, privateLayout, parentLayoutId, classNameId, classPK, nameMap, titleMap, descriptionMap, keywordsMap, robotsMap, type, typeSettings, hidden, system, friendlyURLMap, masterLayoutPageTemplateEntryERC, serviceContext);
+//        } finally {
+//            rebuildMenu();
+//        }
+//    }
 
     @Override
     public Layout addLayout(Layout layout) {

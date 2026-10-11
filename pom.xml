@@ -18,7 +18,7 @@
     </repositories>
 
     <properties>
-        <liferay.dxp.version>2026.q1.5</liferay.dxp.version>
+        <liferay.dxp.version>2025.q2.6</liferay.dxp.version>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
