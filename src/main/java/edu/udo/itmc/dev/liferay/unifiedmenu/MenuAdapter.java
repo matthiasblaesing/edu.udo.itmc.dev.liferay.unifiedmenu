@@ -16,7 +16,7 @@ import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.site.navigation.model.SiteNavigationMenu;
 import com.liferay.site.navigation.model.SiteNavigationMenuItem;
 import com.liferay.site.navigation.service.SiteNavigationMenuItemLocalServiceUtil;
-import com.liferay.site.navigation.service.SiteNavigationMenuLocalServiceUtil;
+import com.liferay.site.navigation.service.SiteNavigationMenuLocalService;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -58,6 +58,9 @@ public class MenuAdapter {
     // benutzt, es geht nur um die Verzögerung der Aktivierung dieses Services.
     @Reference(target = ModuleServiceLifecycle.PORTLETS_INITIALIZED)
     private ModuleServiceLifecycle _moduleServiceLifecycle;
+
+    @Reference
+    private SiteNavigationMenuLocalService sitenavigationMenuLocalService;
 
     @Activate
     public void activate() {
@@ -139,7 +142,7 @@ public class MenuAdapter {
 
     private void rebuildMenuForGroup(Group group) {
         try {
-            SiteNavigationMenu menu = SiteNavigationMenuLocalServiceUtil
+            SiteNavigationMenu menu = sitenavigationMenuLocalService
                     .getSiteNavigationMenus(group.getGroupId())
                     .stream()
                     // Users are expected to create a menu with name "UnifiedMenu"
