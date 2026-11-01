@@ -2,3 +2,6 @@ Bundle-Name: edu.udo.itmc.dev.liferay.unifiedmenu
 Bundle-SymbolicName: edu.udo.itmc.dev.liferay.unifiedmenu
 Bundle-Version: 1.0.0
 Import-Package: *
+Provide-Capability:\
+	liferay.language.resources;\
+		resource.bundle.base.name="content.Language"
