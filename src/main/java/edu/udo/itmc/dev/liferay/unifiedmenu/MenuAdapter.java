@@ -108,6 +108,8 @@ public class MenuAdapter {
         logger.debug("Rebuilding site navigation menus");
         TransactionConfig tc = TransactionConfig.Factory.create(Propagation.REQUIRES_NEW, new Class<?>[]{Exception.class});
         try {
+            // Menurebuilding is per group and for that it will be run
+            // atomically
             for (Company c : CompanyLocalServiceUtil.getCompanies()) {
                 for (Group group : GroupLocalServiceUtil.getGroups(c.getCompanyId(), -1, true)) {
                     logger.debug(String.format(
@@ -124,7 +126,7 @@ public class MenuAdapter {
                         });
                     } catch (Throwable ex) {
                         logger.error(String.format(
-                                "Rebuilding menu for company %s (Web-ID: %s) and group %s (Friendly-URL: %s)",
+                                "Rebuilding menu for company %s (Web-ID: %s) and group %s (Friendly-URL: %s) failed",
                                 c.getName(),
                                 c.getWebId(),
                                 group.getNameCurrentValue(),
@@ -140,76 +142,68 @@ public class MenuAdapter {
         }
     }
 
-    private void rebuildMenuForGroup(Group group) {
-        try {
-            SiteNavigationMenu menu = sitenavigationMenuLocalService
-                    .getSiteNavigationMenus(group.getGroupId())
-                    .stream()
-                    // Users are expected to create a menu with name "UnifiedMenu"
-                    // if it does not exist, the site will not be processed
-                    .filter(snm -> "UnifiedMenu".equals(snm.getName()))
-                    .findFirst()
-                    .orElse(null);
+    private void rebuildMenuForGroup(Group group) throws PortalException {
+        SiteNavigationMenu menu = sitenavigationMenuLocalService
+                .getSiteNavigationMenus(group.getGroupId())
+                .stream()
+                // Users are expected to create a menu with name "UnifiedMenu"
+                // if it does not exist, the site will not be processed
+                .filter(snm -> "UnifiedMenu".equals(snm.getName()))
+                .findFirst()
+                .orElse(null);
 
-            if (menu == null) {
-                return;
+        if (menu == null) {
+            return;
+        }
+
+        Map<Long, Node> nodeMap = new HashMap<>();
+        // Assumption: friendlyURLs are unique in their area
+        Map<String, Node> friendlyUrlMapPrivate = new HashMap<>();
+        Map<String, Node> friendlyUrlMapPublic = new HashMap<>();
+        Stream.concat(
+                LayoutLocalServiceUtil.getLayouts(group.getGroupId(), false).stream(),
+                LayoutLocalServiceUtil.getLayouts(group.getGroupId(), true).stream())
+                .forEach(l -> {
+                    Node node = new Node(l);
+                    nodeMap.put(l.getPlid(), node);
+                    if (l.isPrivateLayout()) {
+                        friendlyUrlMapPrivate.put(l.getFriendlyURL(), node);
+                    } else {
+                        friendlyUrlMapPublic.put(l.getFriendlyURL(), node);
+                    }
+                });
+
+        Map<Long, Long> publicPrivateMap = new HashMap<>();
+
+        friendlyUrlMapPrivate.forEach((friendlyUrl, privateNode) -> {
+            Node publicNode = friendlyUrlMapPublic.get(friendlyUrl);
+            if (publicNode != null) {
+                publicPrivateMap.put(publicNode.layout().getPlid(), privateNode.layout().getPlid());
+                nodeMap.remove(publicNode.layout().getPlid());
             }
+        });
 
-            Map<Long, Node> nodeMap = new HashMap<>();
-            // Assumption: friendlyURLs are unique in their area
-            Map<String, Node> friendlyUrlMapPrivate = new HashMap<>();
-            Map<String, Node> friendlyUrlMapPublic = new HashMap<>();
-            Stream.concat(
-                    LayoutLocalServiceUtil.getLayouts(group.getGroupId(), false).stream(),
-                    LayoutLocalServiceUtil.getLayouts(group.getGroupId(), true).stream())
-                    .forEach(l -> {
-                        Node node = new Node(l);
-                        nodeMap.put(l.getPlid(), node);
-                        if (l.isPrivateLayout()) {
-                            friendlyUrlMapPrivate.put(l.getFriendlyURL(), node);
-                        } else {
-                            friendlyUrlMapPublic.put(l.getFriendlyURL(), node);
-                        }
-                    });
-
-            Map<Long, Long> publicPrivateMap = new HashMap<>();
-
-            friendlyUrlMapPrivate.forEach((friendlyUrl, privateNode) -> {
-                Node publicNode = friendlyUrlMapPublic.get(friendlyUrl);
-                if (publicNode != null) {
-                    publicPrivateMap.put(publicNode.layout().getPlid(), privateNode.layout().getPlid());
-                    nodeMap.remove(publicNode.layout().getPlid());
-                }
-            });
-
-            List<Node> roots = nodeMap.values().stream()
-                    .filter(node -> {
-                        long parentPlid = publicPrivateMap.getOrDefault(node.layout().getParentPlid(), node.layout().getParentPlid());
-                        return parentPlid == 0;
-                    })
-                    .toList();
-            nodeMap.values().forEach(node -> {
-                long parentPlid = publicPrivateMap.getOrDefault(node.layout().getParentPlid(), node.layout().getParentPlid());
-                Node parent = nodeMap.get(parentPlid);
-                if (parent != null) {
-                    parent.children().add(node);
-                }
-            });
-
-            List<SiteNavigationMenuItem> existingEntries = new ArrayList<>(
-                    SiteNavigationMenuItemLocalServiceUtil.getSiteNavigationMenuItems(menu.getSiteNavigationMenuId()));
-
-            toSiteNavigationMenuItem(menu, roots, null, existingEntries, publicPrivateMap.values());
-
-            for (SiteNavigationMenuItem leftover : existingEntries) {
-                try {
-                    SiteNavigationMenuItemLocalServiceUtil.deleteSiteNavigationMenuItem(leftover.getSiteNavigationMenuItemId());
-                } catch (PortalException ignored) {
-                    // already removed, e.g. as a child of a deleted parent
-                }
+        List<Node> roots = nodeMap.values().stream()
+                .filter(node -> {
+                    long parentPlid = publicPrivateMap.getOrDefault(node.layout().getParentPlid(), node.layout().getParentPlid());
+                    return parentPlid == 0;
+                })
+                .toList();
+        nodeMap.values().forEach(node -> {
+            long parentPlid = publicPrivateMap.getOrDefault(node.layout().getParentPlid(), node.layout().getParentPlid());
+            Node parent = nodeMap.get(parentPlid);
+            if (parent != null) {
+                parent.children().add(node);
             }
-        } catch (PortalException | RuntimeException ex) {
-            logger.error("Failed to rebuild menu for group {}", group.getGroupId(), ex);
+        });
+
+        List<SiteNavigationMenuItem> existingEntries = new ArrayList<>(
+                SiteNavigationMenuItemLocalServiceUtil.getSiteNavigationMenuItems(menu.getSiteNavigationMenuId()));
+
+        toSiteNavigationMenuItem(menu, roots, null, existingEntries, publicPrivateMap.values());
+
+        for (SiteNavigationMenuItem leftover : existingEntries) {
+            SiteNavigationMenuItemLocalServiceUtil.deleteSiteNavigationMenuItem(leftover.getSiteNavigationMenuItemId());
         }
     }
 
